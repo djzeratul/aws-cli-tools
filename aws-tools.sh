@@ -5,6 +5,24 @@
 export AWS_PAGER=""
 export AWS_CLI_AUTO_PROMPT=off
 
+# Sometimes the easy way is the hard way, zsh globs
+aws_profile_sanitize() {
+  if [ -n "${AWS_PROFILE:-}" ]; then
+    local original="$AWS_PROFILE"
+
+    # If it starts with '||', strip that prefix
+    case "$AWS_PROFILE" in
+      '||'*) AWS_PROFILE="${AWS_PROFILE#'||'}" ;;
+    esac
+
+    export AWS_PROFILE
+
+    if [ "$original" != "$AWS_PROFILE" ]; then
+      echo "aws_profile_sanitize: fixed AWS_PROFILE from '$original' to '$AWS_PROFILE'" >&2
+    fi
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # awsbase
 #   Detect or select a "base" SSO/IAM Identity Center profile.
@@ -236,6 +254,7 @@ awsjump() {
         for p in "${profiles[@]}"; do
             if [ "$p" = "$target" ]; then
                 export AWS_PROFILE="$p"
+                aws_profile_sanitize
                 echo "AWS_PROFILE set to '$AWS_PROFILE'."
                 return 0
             fi
@@ -397,6 +416,7 @@ awsjump() {
 
     local chosen_profile="${sorted_profiles[$choice_index]}"
     export AWS_PROFILE="$chosen_profile"
+    aws_profile_sanitize
     echo "AWS_PROFILE set to '$AWS_PROFILE'."
 }
 
